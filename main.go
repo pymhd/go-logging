@@ -81,10 +81,12 @@ func (l *Logger) Debugln(v ...interface{}) {
 }
 
 func (l *Logger) Debugf(format string, v ...interface{}) {
-	l.Lock()
-	defer l.Unlock()
-	l.formatHeader("\033[0;37mDEBUG\033[0m")
-	fmt.Fprintf(l.Out, format, v...)
+	if VERBOSE {
+		l.Lock()
+		defer l.Unlock()
+		l.formatHeader("\033[0;37mDEBUG\033[0m")
+		fmt.Fprintf(l.Out, format, v...)
+	}
 }
 
 func (l *Logger) Warningln(v ...interface{}) {
