@@ -38,7 +38,8 @@ func init() {
 }
 
 /*
-Debugln acts  just like fmt.Println but with custom prefix  formatter
+Debugln acts  just like fmt.Println but with custom prefix  formatter (severity debug)
+Output will be printed only if verbosity flag is set through log.SetOutput()
 */
 func Debugln(v ...interface{}) {
 	if !verbose {
@@ -53,7 +54,8 @@ func Debugln(v ...interface{}) {
 }
 
 /*
-Debugf acts  just like fmt.Printf but with custom prefix  formatter
+Debugf acts  just like fmt.Printf but with custom prefix  formatter (severity debug)
+Output will be printed only if verbosity flag is set through log.SetOutput()
 */
 func Debugf(s string, v ...interface{}) {
 	if !verbose {
@@ -67,6 +69,9 @@ func Debugf(s string, v ...interface{}) {
 	fmt.Fprintf(logging.out, s, v...)
 }
 
+/*
+Infoln acts  just like fmt.Println but with custom prefix  formatter (severity info)
+*/
 func Infoln(v ...interface{}) {
 	logging.mu.Lock()
 	defer logging.mu.Unlock()
@@ -75,6 +80,9 @@ func Infoln(v ...interface{}) {
 	fmt.Fprintln(logging.out, v...)
 }
 
+/*
+Infof acts  just like fmt.Printf but with custom prefix  formatter (severity info)
+*/
 func Infof(s string, v ...interface{}) {
 	logging.mu.Lock()
 	defer logging.mu.Unlock()
@@ -131,10 +139,16 @@ func Fatalf(s string, v ...interface{}) {
 	fmt.Fprintf(logging.out, s, v...)
 }
 
+/*
+Change default (os.Stdout) output
+*/
 func SetOutput(o io.Writer) {
 	logging.out = o
 }
 
+/*
+EnableDebug sets flobal verbosity flag so you will receive log.Debugln() and log.Debugf() methods 
+*/
 func EnableDebug() {
 	verbose = true
 }
