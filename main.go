@@ -1,3 +1,7 @@
+/*
+Simple fmt wrapper to log with custom formatter
+No allocation optimizations
+*/
 package logging
 
 import (
@@ -23,14 +27,24 @@ type logger struct {
 	out io.Writer
 }
 
-var logging *logger
+var (
+	verbose bool
+	logging *logger
+)
 
 func init() {
 	logging = new(logger)
 	logging.out = os.Stdout
 }
 
+/*
+Debugln acts  just like fmt.Println but with custom prefix  formatter
+*/
 func Debugln(v ...interface{}) {
+	if !verbose {
+		return
+	}
+
 	logging.mu.Lock()
 	defer logging.mu.Unlock()
 
@@ -38,7 +52,14 @@ func Debugln(v ...interface{}) {
 	fmt.Fprintln(logging.out, v...)
 }
 
+/*
+Debugf acts  just like fmt.Printf but with custom prefix  formatter
+*/
 func Debugf(s string, v ...interface{}) {
+	if !verbose {
+		return
+	}
+
 	logging.mu.Lock()
 	defer logging.mu.Unlock()
 
@@ -112,6 +133,10 @@ func Fatalf(s string, v ...interface{}) {
 
 func SetOutput(o io.Writer) {
 	logging.out = o
+}
+
+func EnableDebug() {
+	verbose = true
 }
 
 func printHeader(s string) {
