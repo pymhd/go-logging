@@ -1,15 +1,14 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
-	"go-logging/handlers"
-	"io"
+	"bytes"
+	"time"
+	"sync"
 	"runtime"
 	"strconv"
 	"strings"
-	"sync"
-	"time"
+	"go-logging/handlers"
 )
 
 const (
@@ -37,7 +36,7 @@ type logger struct {
 	mu      sync.Mutex
 	flags   int
 	level   int
-	handler io.WriteCloser
+	handler handlers.Handler
 
 	// I am sorry for stealing from Google's glog package =(
 	freeList   *buffer
@@ -133,6 +132,7 @@ func (l *logger) printf(level int, format string, v ...interface{}) {
 	}
 }
 
+
 // EXPORTED METHODS
 func (l *logger) Debug(v ...interface{}) {
 	l.mu.Lock()
@@ -190,21 +190,36 @@ func (l *logger) Errorf(format string, v ...interface{}) {
 	l.printf(ERROR, format, v...)
 }
 
-func New(h io.WriteCloser, level, flags int) *logger {
+func New(h handlers.Handler, level, flags int) *logger {
 	l := new(logger)
 	l.flags = flags
 	l.level = level
 	l.handler = h
+	ticker := time.NewTicker(1 * time.Second)
+	go func() {
+		for range ticker.C {
+			l.mu.Lock()
+			l.handler.Flush()
+			l.mu.Unlock()
+		}
+	}()
 	return l
 }
 
 func main() {
 	//log := logger.New(handlers.StreamHandler{}, logger.DEBUG, logger.OLEVEL|logger.OFILE|logger.OTIME)
 	//log := New(handlers.StreamHandler{}, INFO, OLEVEL|OFILE|OTIME)
-	log := New(handlers.StreamHandler{}, INFO, OLEVEL|OTIME)
+	log := New(handlers.NewFileHandler("test.log"), INFO, OLEVEL|OTIME)
+	go log.Debugf("test from debug ")
 	go log.Debug("test from debug")
+
+	go log.Infof("test from info ")
 	go log.Info("test from info")
+	
+	go log.Warningf("Test from warning ")
 	go log.Warning("Test from warning")
-	go log.Error("Test From error")
-	time.Sleep(1 * time.Second)
+	
+	log.Errorf("Test From error ")
+	log.Error("Test From error")
+	//time.Sleep(2 * time.Second)
 }
