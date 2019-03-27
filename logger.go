@@ -1,47 +1,155 @@
-package log
-
+package main
 
 import (
-        "io"
-        "sync"
-        "go-logging/handlers"
+	"bytes"
+	"io"
+	"fmt"
+	"time"
+	"runtime"
+	"strconv"
+	"strings"
+	"sync"
+	"go-logging/handlers"
 )
 
 const (
-        
+	OLEVEL = 1 << iota
+	OFILE
+	OTIME
 )
 
-var (
-        l *logger
+const (
+	DEBUG = 1
+	INFO
+	WARNING
+	ERROR
 )
+
+var severityLeveles = map[int]string{1: "DEBUG", 2: "INFO", 3: "WARNING", 4: "ERROR"}
+
+type buffer struct {
+	bytes.Buffer
+	next *buffer
+	tmp  [64]byte
+}
 
 type logger struct {
-        mu	sync.Mutex
-        handler	io.WriteCloser
+	mu      sync.Mutex
+	flags   int
+	level   int
+	handler io.WriteCloser
+
+	// I am sorry for stealing from Google's glog package =(
+	freeList   *buffer
+	freeListMu sync.Mutex
 }
 
-
-func Info(v ...interface{}) (n int, err error) {
-        l.mu.Lock()
-        defer l.mu.Unlock()
-        
-        return fmt.Fprintln(l.handler, v...)
+func (l *logger) getBuffer() *buffer {
+	l.freeListMu.Lock()
+	b := l.freeList
+	if b != nil {
+		// point logger's next buffer to next avail after this one
+		l.freeList = b.next
+	}
+	l.freeListMu.Unlock()
+	if b == nil {
+		b = new(buffer)
+	} else {
+		// to reset buffer and disconnect from next buffer in list (isolate anf flush)
+		b.next = nil
+		b.Reset()
+	}
+	return b
 }
 
-func Infof(s string, v ...interface{}) (n int, err error) {
-        l.mu.Lock()
-        defer l.mu.Unlock()
-
-        return fmt.Fprintf(l.handler, s, v...)
+func (l *logger) putBuffer(b *buffer) {
+	if b.Len() >= 256 {
+		// let for GC
+		return
+	}
+	l.freeListMu.Lock()
+	//to insert buffer back in chain, after getBuffer gets it it will isolate it again and flush
+	b.next = l.freeList
+	l.freeList = b
+	l.freeListMu.Unlock()
 }
 
-
-func SetHandler(h Handler) {
-        l.handler = h
+func (l *logger) flushBuffer(b *buffer) {
+	l.handler.Write(b.Bytes())
 }
 
+func (l *logger) writeHeader(level int, buf *buffer) {
+	severity := severityLeveles[level]
+	now := time.Now().Format("02-01-20016 15:04:05")
+	_, file, line, ok := runtime.Caller(2)
+	if !ok {
+		file = "????"
+		line = 0
+	} else {
+		slash := strings.LastIndex(file, "/")
+		if slash >= 0 {
+			file = file[slash+1:]
+		}
+	}
+	buf.WriteString(now)
+	buf.WriteString(" ")
+	buf.WriteString(severity)
+	buf.WriteString(" ")
+	buf.WriteString(file)
+	buf.WriteString(":")
+	buf.WriteString(strconv.Itoa(line))
+	buf.WriteString("   ")
+}
 
-func init() {
-        l = new(logger)
-        l.SetHandler(handlers.ConsoleHandler{})
+func (l *logger) print(level int, v ...interface{}) {
+	if level >= l.level {
+		b := l.getBuffer()
+		defer l.putBuffer(b)
+
+		l.writeHeader(level, b)
+		fmt.Fprintln(b, v...)
+
+		l.flushBuffer(b)
+	}
+}
+
+func (l *logger) printf(level int, format string, v ...interface{}) {
+	if level >= l.level {
+		b := l.getBuffer()
+		defer l.putBuffer(b)
+
+		l.writeHeader(level, b)
+		fmt.Fprintf(b, format, v...)
+
+		l.flushBuffer(b)
+	}
+}
+
+// EXPORTED METHODS
+func (l *logger) Info(v ...interface{}) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	l.print(INFO, v...)
+}
+
+func (l *logger) Infof(format string, v ...interface{}) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	l.printf(INFO, format, v...)
+}
+
+func New(h io.WriteCloser, level, flags int) *logger {
+	l := new(logger)
+	l.flags = flags
+	l.level = level
+	l.handler = h
+	return l
+}
+
+func main() {
+	//log := logger.New(handlers.StreamHandler{}, logger.DEBUG, logger.OLEVEL|logger.OFILE|logger.OTIME)
+	log := New(handlers.StreamHandler{}, DEBUG, OLEVEL|OFILE|OTIME)
+	log.Info("test")
 }
