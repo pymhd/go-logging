@@ -9,7 +9,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"go-logging/handlers"
+	"github.com/pymhd/go-logging/handlers"
 )
 
 const (
@@ -206,23 +206,3 @@ func New(h handlers.Handler, level, flags int) *Logger {
 	}()
 	return l
 }
-
-/*
-func main() {
-	//log := Logger.New(handlers.StreamHandler{}, logger.DEBUG, logger.OLEVEL|logger.OFILE|logger.OTIME)
-	//log := New(handlers.StreamHandler{}, INFO, OLEVEL|OFILE|OTIME)
-	log := New(handlers.NewFileHandler("test.log"), INFO, OLEVEL|OTIME)
-	go log.Debugf("test from debug ")
-	go log.Debug("test from debug")
-
-	go log.Infof("test from info ")
-	go log.Info("test from info")
-	
-	go log.Warningf("Test from warning ")
-	go log.Warning("Test from warning")
-	
-	log.Errorf("Test From error ")
-	log.Error("Test From error")
-	//time.Sleep(2 * time.Second)
-}
-*/
