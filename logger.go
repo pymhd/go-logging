@@ -4,6 +4,11 @@ package log
 import (
         "io"
         "sync"
+        "go-logging/handlers"
+)
+
+const (
+        
 )
 
 var (
@@ -38,5 +43,5 @@ func SetHandler(h Handler) {
 
 func init() {
         l = new(logger)
-        l.SetHandler(ConsoleHandler{})
+        l.SetHandler(handlers.ConsoleHandler{})
 }

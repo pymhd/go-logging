@@ -16,6 +16,7 @@ func (nh NullHandler) Close() error {
         return nil 
 }
 
+
 //File
 type FileHandler struct {
         fd 	*os.File
