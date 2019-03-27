@@ -2,20 +2,20 @@ package main
 
 import (
 	"bytes"
-	"io"
 	"fmt"
-	"time"
+	"go-logging/handlers"
+	"io"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
-	"go-logging/handlers"
+	"time"
 )
 
 const (
-	OLEVEL = 1 << iota
+	OTIME = 1 << iota
+	OLEVEL
 	OFILE
-	OTIME
 )
 
 const (
@@ -79,26 +79,34 @@ func (l *logger) flushBuffer(b *buffer) {
 }
 
 func (l *logger) writeHeader(level int, buf *buffer) {
-	severity := severityLeveles[level]
-	now := time.Now().Format("02-01-20016 15:04:05")
-	_, file, line, ok := runtime.Caller(2)
-	if !ok {
-		file = "????"
-		line = 0
-	} else {
-		slash := strings.LastIndex(file, "/")
-		if slash >= 0 {
-			file = file[slash+1:]
-		}
+	if OTIME&l.flags > 0 {
+		now := time.Now().Format("02-01-20016 15:04:05")
+		buf.WriteString(now)
+		buf.WriteString(" ")
 	}
-	buf.WriteString(now)
-	buf.WriteString(" ")
-	buf.WriteString(severity)
-	buf.WriteString(" ")
-	buf.WriteString(file)
-	buf.WriteString(":")
-	buf.WriteString(strconv.Itoa(line))
-	buf.WriteString("   ")
+	if OLEVEL&l.flags > 0 {
+		severity := severityLeveles[level]
+		buf.WriteString(severity)
+		buf.WriteString(" ")
+	}
+	if OFILE&l.flags > 0 {
+		_, file, line, ok := runtime.Caller(2)
+		if !ok {
+			file = "????"
+			line = 0
+		} else {
+			slash := strings.LastIndex(file, "/")
+			if slash >= 0 {
+				file = file[slash+1:]
+			}
+		}
+
+		buf.WriteString(file)
+		buf.WriteString(":")
+		buf.WriteString(strconv.Itoa(line))
+		buf.WriteString(" ")
+	}
+	buf.WriteString("  ")
 }
 
 func (l *logger) print(level int, v ...interface{}) {
@@ -141,51 +149,46 @@ func (l *logger) Debugf(format string, v ...interface{}) {
 }
 
 func (l *logger) Info(v ...interface{}) {
-        l.mu.Lock()
-        defer l.mu.Unlock()
+	l.mu.Lock()
+	defer l.mu.Unlock()
 
-        l.print(INFO, v...)
+	l.print(INFO, v...)
 }
 
 func (l *logger) Infof(format string, v ...interface{}) {
-        l.mu.Lock()
-        defer l.mu.Unlock()
+	l.mu.Lock()
+	defer l.mu.Unlock()
 
-        l.printf(INFO, format, v...)
+	l.printf(INFO, format, v...)
 }
 
 func (l *logger) Warning(v ...interface{}) {
-        l.mu.Lock()
-        defer l.mu.Unlock()
+	l.mu.Lock()
+	defer l.mu.Unlock()
 
-        l.print(WARNING, v...)
+	l.print(WARNING, v...)
 }
 
 func (l *logger) Warningf(format string, v ...interface{}) {
-        l.mu.Lock()
-        defer l.mu.Unlock()
+	l.mu.Lock()
+	defer l.mu.Unlock()
 
-        l.printf(WARNING, format, v...)
+	l.printf(WARNING, format, v...)
 }
 
-
 func (l *logger) Error(v ...interface{}) {
-        l.mu.Lock()
-        defer l.mu.Unlock()
+	l.mu.Lock()
+	defer l.mu.Unlock()
 
-        l.print(ERROR, v...)
+	l.print(ERROR, v...)
 }
 
 func (l *logger) Errorf(format string, v ...interface{}) {
-        l.mu.Lock()
-        defer l.mu.Unlock()
+	l.mu.Lock()
+	defer l.mu.Unlock()
 
-        l.printf(ERROR, format, v...)
+	l.printf(ERROR, format, v...)
 }
-
-
-
-
 
 func New(h io.WriteCloser, level, flags int) *logger {
 	l := new(logger)
@@ -197,7 +200,8 @@ func New(h io.WriteCloser, level, flags int) *logger {
 
 func main() {
 	//log := logger.New(handlers.StreamHandler{}, logger.DEBUG, logger.OLEVEL|logger.OFILE|logger.OTIME)
-	log := New(handlers.StreamHandler{}, INFO, OLEVEL|OFILE|OTIME)
+	//log := New(handlers.StreamHandler{}, INFO, OLEVEL|OFILE|OTIME)
+	log := New(handlers.StreamHandler{}, INFO, OLEVEL|OTIME)
 	go log.Debug("test from debug")
 	go log.Info("test from info")
 	go log.Warning("Test from warning")
