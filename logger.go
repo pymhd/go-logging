@@ -26,12 +26,14 @@ const (
 )
 
 var severityLeveles = map[int]string{DEBUG: "DEBUG", INFO: "INFO", WARNING: "WARNING", ERROR: "ERROR"}
+var registeredLoggers = make(map[string]*Logger)
+
 
 type buffer struct {
 	bytes.Buffer
 	next *buffer
 	tmp  [64]byte
-}
+l}
 
 type Logger struct {
 	mu      sync.Mutex
@@ -191,7 +193,11 @@ func (l *Logger) Errorf(format string, v ...interface{}) {
 	l.printf(ERROR, format, v...)
 }
 
-func New(h handlers.Handler, level, flags int) *Logger {
+func New(name, string, h handlers.Handler, level, flags int) *Logger {
+	existingLogger, ok := registeredLoggers[name]
+	if ok {
+		return existingLogger
+	}
 	l := new(Logger)
 	l.flags = flags
 	l.level = level
@@ -204,5 +210,6 @@ func New(h handlers.Handler, level, flags int) *Logger {
 			l.mu.Unlock()
 		}
 	}()
+	existingLogger[name] = l
 	return l
 }
