@@ -11,7 +11,7 @@ import (
 	"strings"
 	"go-logging/handlers"
 )
-7
+
 const (
 	OTIME = 1 << iota
 	OLEVEL
@@ -33,7 +33,7 @@ type buffer struct {
 	tmp  [64]byte
 }
 
-type logger struct {
+type Logger struct {
 	mu      sync.Mutex
 	flags   int
 	level   int
@@ -44,11 +44,11 @@ type logger struct {
 	freeListMu sync.Mutex
 }
 
-func (l *logger) getBuffer() *buffer {
+func (l *Logger) getBuffer() *buffer {
 	l.freeListMu.Lock()
 	b := l.freeList
 	if b != nil {
-		// point logger's next buffer to next avail after this one
+		// point Logger's next buffer to next avail after this one
 		l.freeList = b.next
 	}
 	l.freeListMu.Unlock()
@@ -62,7 +62,7 @@ func (l *logger) getBuffer() *buffer {
 	return b
 }
 
-func (l *logger) putBuffer(b *buffer) {
+func (l *Logger) putBuffer(b *buffer) {
 	if b.Len() >= 256 {
 		// let for GC
 		return
@@ -74,11 +74,11 @@ func (l *logger) putBuffer(b *buffer) {
 	l.freeListMu.Unlock()
 }
 
-func (l *logger) flushBuffer(b *buffer) {
+func (l *Logger) flushBuffer(b *buffer) {
 	l.handler.Write(b.Bytes())
 }
 
-func (l *logger) writeHeader(level int, buf *buffer) {
+func (l *Logger) writeHeader(level int, buf *buffer) {
 	if OTIME&l.flags > 0 {
 		now := time.Now().Format("02-01-20016 15:04:05")
 		buf.WriteString(now)
@@ -90,7 +90,7 @@ func (l *logger) writeHeader(level int, buf *buffer) {
 		buf.WriteString(" ")
 	}
 	if OFILE&l.flags > 0 {
-		_, file, line, ok := runtime.Caller(2)
+		_, file, line, ok := runtime.Caller(3)
 		if !ok {
 			file = "????"
 			line = 0
@@ -109,7 +109,7 @@ func (l *logger) writeHeader(level int, buf *buffer) {
 	buf.WriteString("  ")
 }
 
-func (l *logger) print(level int, v ...interface{}) {
+func (l *Logger) print(level int, v ...interface{}) {
 	if level >= l.level {
 		b := l.getBuffer()
 		defer l.putBuffer(b)
@@ -121,7 +121,7 @@ func (l *logger) print(level int, v ...interface{}) {
 	}
 }
 
-func (l *logger) printf(level int, format string, v ...interface{}) {
+func (l *Logger) printf(level int, format string, v ...interface{}) {
 	if level >= l.level {
 		b := l.getBuffer()
 		defer l.putBuffer(b)
@@ -135,64 +135,64 @@ func (l *logger) printf(level int, format string, v ...interface{}) {
 
 
 // EXPORTED METHODS
-func (l *logger) Debug(v ...interface{}) {
+func (l *Logger) Debug(v ...interface{}) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	l.print(DEBUG, v...)
 }
 
-func (l *logger) Debugf(format string, v ...interface{}) {
+func (l *Logger) Debugf(format string, v ...interface{}) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	l.printf(DEBUG, format, v...)
 }
 
-func (l *logger) Info(v ...interface{}) {
+func (l *Logger) Info(v ...interface{}) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	l.print(INFO, v...)
 }
 
-func (l *logger) Infof(format string, v ...interface{}) {
+func (l *Logger) Infof(format string, v ...interface{}) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	l.printf(INFO, format, v...)
 }
 
-func (l *logger) Warning(v ...interface{}) {
+func (l *Logger) Warning(v ...interface{}) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	l.print(WARNING, v...)
 }
 
-func (l *logger) Warningf(format string, v ...interface{}) {
+func (l *Logger) Warningf(format string, v ...interface{}) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	l.printf(WARNING, format, v...)
 }
 
-func (l *logger) Error(v ...interface{}) {
+func (l *Logger) Error(v ...interface{}) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	l.print(ERROR, v...)
 }
 
-func (l *logger) Errorf(format string, v ...interface{}) {
+func (l *Logger) Errorf(format string, v ...interface{}) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	l.printf(ERROR, format, v...)
 }
 
-func New(h handlers.Handler, level, flags int) *logger {
-	l := new(logger)
+func New(h handlers.Handler, level, flags int) *Logger {
+	l := new(Logger)
 	l.flags = flags
 	l.level = level
 	l.handler = h
@@ -209,7 +209,7 @@ func New(h handlers.Handler, level, flags int) *logger {
 
 /*
 func main() {
-	//log := logger.New(handlers.StreamHandler{}, logger.DEBUG, logger.OLEVEL|logger.OFILE|logger.OTIME)
+	//log := Logger.New(handlers.StreamHandler{}, logger.DEBUG, logger.OLEVEL|logger.OFILE|logger.OTIME)
 	//log := New(handlers.StreamHandler{}, INFO, OLEVEL|OFILE|OTIME)
 	log := New(handlers.NewFileHandler("test.log"), INFO, OLEVEL|OTIME)
 	go log.Debugf("test from debug ")

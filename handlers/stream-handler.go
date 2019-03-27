@@ -7,11 +7,15 @@ import (
 //Console
 type StreamHandler struct {}
 
-func(ch StreamHandler) Write(p []byte) (n int, err error) {
+func(sh StreamHandler) Write(p []byte) (n int, err error) {
         return os.Stdout.Write(p)
 }
 
-
-func(ch StreamHandler) Close() error {
+func(sh StreamHandler) Close() error {
         return nil
 }
+
+func(sh StreamHandler) Flush() {
+}
+
+
