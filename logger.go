@@ -33,7 +33,7 @@ type buffer struct {
 	bytes.Buffer
 	next *buffer
 	tmp  [64]byte
-l}
+}
 
 type Logger struct {
 	mu      sync.Mutex
@@ -193,7 +193,7 @@ func (l *Logger) Errorf(format string, v ...interface{}) {
 	l.printf(ERROR, format, v...)
 }
 
-func New(name, string, h handlers.Handler, level, flags int) *Logger {
+func New(name string, h handlers.Handler, level, flags int) *Logger {
 	existingLogger, ok := registeredLoggers[name]
 	if ok {
 		return existingLogger
@@ -210,6 +210,6 @@ func New(name, string, h handlers.Handler, level, flags int) *Logger {
 			l.mu.Unlock()
 		}
 	}()
-	existingLogger[name] = l
+	registeredLoggers[name] = l
 	return l
 }
