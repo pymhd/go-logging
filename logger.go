@@ -1,4 +1,5 @@
-package main
+package logger 
+
 
 import (
 	"fmt"
@@ -10,7 +11,7 @@ import (
 	"strings"
 	"go-logging/handlers"
 )
-
+7
 const (
 	OTIME = 1 << iota
 	OLEVEL
@@ -206,6 +207,7 @@ func New(h handlers.Handler, level, flags int) *logger {
 	return l
 }
 
+/*
 func main() {
 	//log := logger.New(handlers.StreamHandler{}, logger.DEBUG, logger.OLEVEL|logger.OFILE|logger.OTIME)
 	//log := New(handlers.StreamHandler{}, INFO, OLEVEL|OFILE|OTIME)
@@ -223,3 +225,4 @@ func main() {
 	log.Error("Test From error")
 	//time.Sleep(2 * time.Second)
 }
+*/
