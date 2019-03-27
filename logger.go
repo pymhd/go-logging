@@ -19,13 +19,13 @@ const (
 )
 
 const (
-	DEBUG = 1
+	DEBUG = iota
 	INFO
 	WARNING
 	ERROR
 )
 
-var severityLeveles = map[int]string{1: "DEBUG", 2: "INFO", 3: "WARNING", 4: "ERROR"}
+var severityLeveles = map[int]string{DEBUG: "DEBUG", INFO: "INFO", WARNING: "WARNING", ERROR: "ERROR"}
 
 type buffer struct {
 	bytes.Buffer
@@ -126,19 +126,66 @@ func (l *logger) printf(level int, format string, v ...interface{}) {
 }
 
 // EXPORTED METHODS
-func (l *logger) Info(v ...interface{}) {
+func (l *logger) Debug(v ...interface{}) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	l.print(INFO, v...)
+	l.print(DEBUG, v...)
+}
+
+func (l *logger) Debugf(format string, v ...interface{}) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	l.printf(DEBUG, format, v...)
+}
+
+func (l *logger) Info(v ...interface{}) {
+        l.mu.Lock()
+        defer l.mu.Unlock()
+
+        l.print(INFO, v...)
 }
 
 func (l *logger) Infof(format string, v ...interface{}) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
+        l.mu.Lock()
+        defer l.mu.Unlock()
 
-	l.printf(INFO, format, v...)
+        l.printf(INFO, format, v...)
 }
+
+func (l *logger) Warning(v ...interface{}) {
+        l.mu.Lock()
+        defer l.mu.Unlock()
+
+        l.print(WARNING, v...)
+}
+
+func (l *logger) Warningf(format string, v ...interface{}) {
+        l.mu.Lock()
+        defer l.mu.Unlock()
+
+        l.printf(WARNING, format, v...)
+}
+
+
+func (l *logger) Error(v ...interface{}) {
+        l.mu.Lock()
+        defer l.mu.Unlock()
+
+        l.print(ERROR, v...)
+}
+
+func (l *logger) Errorf(format string, v ...interface{}) {
+        l.mu.Lock()
+        defer l.mu.Unlock()
+
+        l.printf(ERROR, format, v...)
+}
+
+
+
+
 
 func New(h io.WriteCloser, level, flags int) *logger {
 	l := new(logger)
@@ -150,6 +197,10 @@ func New(h io.WriteCloser, level, flags int) *logger {
 
 func main() {
 	//log := logger.New(handlers.StreamHandler{}, logger.DEBUG, logger.OLEVEL|logger.OFILE|logger.OTIME)
-	log := New(handlers.StreamHandler{}, DEBUG, OLEVEL|OFILE|OTIME)
-	log.Info("test")
+	log := New(handlers.StreamHandler{}, INFO, OLEVEL|OFILE|OTIME)
+	go log.Debug("test from debug")
+	go log.Info("test from info")
+	go log.Warning("Test from warning")
+	go log.Error("Test From error")
+	time.Sleep(1 * time.Second)
 }
