@@ -13,6 +13,10 @@ import (
 )
 
 const (
+	defaultLayout = "02-01-2006 15:04:05"
+)
+
+const (
 	OTIME = 1 << iota
 	OLEVEL
 	OFILE
@@ -82,7 +86,7 @@ func (l *Logger) flushBuffer(b *buffer) {
 
 func (l *Logger) writeHeader(level int, buf *buffer) {
 	if OTIME&l.flags > 0 {
-		now := time.Now().Format("02-01-20016 15:04:05")
+		now := time.Now().Format(defaultLayout)
 		buf.WriteString(now)
 		buf.WriteString(" ")
 	}
