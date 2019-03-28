@@ -20,6 +20,7 @@ const (
 	OTIME = 1 << iota
 	OLEVEL
 	OFILE
+	OCOLOR
 )
 
 const (
@@ -29,7 +30,9 @@ const (
 	ERROR
 )
 
-var severityLeveles = map[int]string{DEBUG: "DEBUG", INFO: "INFO", WARNING: "WARNING", ERROR: "ERROR"}
+var severityLevels = map[int]string{DEBUG: "DEBUG", INFO: "INFO", WARNING: "WARNING", ERROR: "ERROR"}
+var colorSeverityLevels = map[int]string{DEBUG: "\033[0;37mDEBUG\033[0m", INFO: "\033[0;34mINFO\033[0m", WARNING: "\033[0;33mWARNING\033[0m", ERROR: "\033[0;31mERROR\033[0m"}
+
 var registeredLoggers = make(map[string]*Logger)
 
 
@@ -91,7 +94,12 @@ func (l *Logger) writeHeader(level int, buf *buffer) {
 		buf.WriteString(" ")
 	}
 	if OLEVEL&l.flags > 0 {
-		severity := severityLeveles[level]
+		var severity string
+		if OCOLOR & l.flags > 0 {
+			severity = colorSeverityLevels[level] 	
+		} else {
+			severity = severityLevels[level]
+		}
 		buf.WriteString(severity)
 		buf.WriteString(" ")
 	}
