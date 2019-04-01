@@ -1,15 +1,14 @@
-package logger 
-
+package logger
 
 import (
-	"fmt"
 	"bytes"
-	"time"
-	"sync"
+	"fmt"
+	"github.com/pymhd/go-logging/handlers"
 	"runtime"
 	"strconv"
 	"strings"
-	"github.com/pymhd/go-logging/handlers"
+	"sync"
+	"time"
 )
 
 const (
@@ -35,23 +34,22 @@ var colorSeverityLevels = map[int]string{DEBUG: "\033[0;37mDEBUG\033[0m", INFO: 
 
 var registeredLoggers = make(map[string]*logger)
 
-
 type buffer struct {
 	bytes.Buffer
 	next *buffer
 	tmp  [64]byte
 }
 
-type Logger interface{
+type Logger interface {
 	Debug(...interface{})
 	Debugf(string, ...interface{})
-	
+
 	Info(...interface{})
 	Infof(string, ...interface{})
-	
+
 	Warning(...interface{})
 	Warningf(string, ...interface{})
-	
+
 	Error(...interface{})
 	Errorf(string, ...interface{})
 }
@@ -109,8 +107,8 @@ func (l *logger) writeHeader(level int, buf *buffer) {
 	}
 	if OLEVEL&l.flags > 0 {
 		var severity string
-		if OCOLOR & l.flags > 0 {
-			severity = colorSeverityLevels[level] 	
+		if OCOLOR&l.flags > 0 {
+			severity = colorSeverityLevels[level]
 		} else {
 			severity = severityLevels[level]
 		}
@@ -160,7 +158,6 @@ func (l *logger) printf(level int, format string, v ...interface{}) {
 		l.flushBuffer(b)
 	}
 }
-
 
 // EXPORTED METHODS
 func (l *logger) Debug(v ...interface{}) {
