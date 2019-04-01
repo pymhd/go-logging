@@ -33,7 +33,7 @@ const (
 var severityLevels = map[int]string{DEBUG: "DEBUG", INFO: "INFO", WARNING: "WARNING", ERROR: "ERROR"}
 var colorSeverityLevels = map[int]string{DEBUG: "\033[0;37mDEBUG\033[0m", INFO: "\033[0;34mINFO\033[0m", WARNING: "\033[0;33mWARNING\033[0m", ERROR: "\033[0;31mERROR\033[0m"}
 
-var registeredLoggers = make(map[string]*Logger)
+var registeredLoggers = make(map[string]*logger)
 
 
 type buffer struct {
@@ -42,7 +42,21 @@ type buffer struct {
 	tmp  [64]byte
 }
 
-type Logger struct {
+type Logger interface{
+	Debug(...interface{})
+	Debugf(string, ...interface{})
+	
+	Info(...interface{})
+	Infof(string, ...interface{})
+	
+	Warning(...interface{})
+	Warningf(string, ...interface{})
+	
+	Error(...interface{})
+	Errorf(string, ...interface{})
+}
+
+type logger struct {
 	mu      sync.Mutex
 	flags   int
 	level   int
@@ -53,7 +67,7 @@ type Logger struct {
 	freeListMu sync.Mutex
 }
 
-func (l *Logger) getBuffer() *buffer {
+func (l *logger) getBuffer() *buffer {
 	l.freeListMu.Lock()
 	b := l.freeList
 	if b != nil {
@@ -71,7 +85,7 @@ func (l *Logger) getBuffer() *buffer {
 	return b
 }
 
-func (l *Logger) putBuffer(b *buffer) {
+func (l *logger) putBuffer(b *buffer) {
 	if b.Len() >= 256 {
 		// let for GC
 		return
@@ -83,11 +97,11 @@ func (l *Logger) putBuffer(b *buffer) {
 	l.freeListMu.Unlock()
 }
 
-func (l *Logger) flushBuffer(b *buffer) {
+func (l *logger) flushBuffer(b *buffer) {
 	l.handler.Write(b.Bytes())
 }
 
-func (l *Logger) writeHeader(level int, buf *buffer) {
+func (l *logger) writeHeader(level int, buf *buffer) {
 	if OTIME&l.flags > 0 {
 		now := time.Now().Format(defaultLayout)
 		buf.WriteString(now)
@@ -123,7 +137,7 @@ func (l *Logger) writeHeader(level int, buf *buffer) {
 	buf.WriteString("  ")
 }
 
-func (l *Logger) print(level int, v ...interface{}) {
+func (l *logger) print(level int, v ...interface{}) {
 	if level >= l.level {
 		b := l.getBuffer()
 		defer l.putBuffer(b)
@@ -135,7 +149,7 @@ func (l *Logger) print(level int, v ...interface{}) {
 	}
 }
 
-func (l *Logger) printf(level int, format string, v ...interface{}) {
+func (l *logger) printf(level int, format string, v ...interface{}) {
 	if level >= l.level {
 		b := l.getBuffer()
 		defer l.putBuffer(b)
@@ -149,68 +163,68 @@ func (l *Logger) printf(level int, format string, v ...interface{}) {
 
 
 // EXPORTED METHODS
-func (l *Logger) Debug(v ...interface{}) {
+func (l *logger) Debug(v ...interface{}) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	l.print(DEBUG, v...)
 }
 
-func (l *Logger) Debugf(format string, v ...interface{}) {
+func (l *logger) Debugf(format string, v ...interface{}) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	l.printf(DEBUG, format, v...)
 }
 
-func (l *Logger) Info(v ...interface{}) {
+func (l *logger) Info(v ...interface{}) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	l.print(INFO, v...)
 }
 
-func (l *Logger) Infof(format string, v ...interface{}) {
+func (l *logger) Infof(format string, v ...interface{}) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	l.printf(INFO, format, v...)
 }
 
-func (l *Logger) Warning(v ...interface{}) {
+func (l *logger) Warning(v ...interface{}) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	l.print(WARNING, v...)
 }
 
-func (l *Logger) Warningf(format string, v ...interface{}) {
+func (l *logger) Warningf(format string, v ...interface{}) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	l.printf(WARNING, format, v...)
 }
 
-func (l *Logger) Error(v ...interface{}) {
+func (l *logger) Error(v ...interface{}) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	l.print(ERROR, v...)
 }
 
-func (l *Logger) Errorf(format string, v ...interface{}) {
+func (l *logger) Errorf(format string, v ...interface{}) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	l.printf(ERROR, format, v...)
 }
 
-func New(name string, h handlers.Handler, level, flags int) *Logger {
+func New(name string, h handlers.Handler, level, flags int) *logger {
 	existingLogger, ok := registeredLoggers[name]
 	if ok {
 		return existingLogger
 	}
-	l := new(Logger)
+	l := new(logger)
 	l.flags = flags
 	l.level = level
 	l.handler = h
