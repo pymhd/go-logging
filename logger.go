@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	defaultLayout = "02-01-2006 15:04:05"
+	defaultLayout = "2006-01-02T15:04:05.999Z"
 )
 
 const (
